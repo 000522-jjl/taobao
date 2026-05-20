@@ -18,16 +18,11 @@ st.set_page_config(
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
 
-# 检查是否有本地后端服务
-USE_LOCAL_BACKEND = os.getenv("USE_LOCAL_BACKEND", "false").lower() == "true"
-BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8080")
-
 # 初始化 LangChain 相关组件
 @st.cache_resource
 def init_langchain():
     """初始化 LangChain 组件"""
     from langchain_openai import ChatOpenAI
-    # 新版 LangChain 路径
     from langchain_core.prompts import ChatPromptTemplate
     from langchain_core.output_parsers import StrOutputParser
     from langchain_core.runnables import RunnablePassthrough
@@ -36,19 +31,16 @@ def init_langchain():
         return None, None, None
     
     try:
-        # 加载人设档案 - 优先使用当前目录的 persona.txt（适用于 Streamlit Cloud）
+        # 加载人设档案
         persona_file_path = os.path.join(os.path.dirname(__file__), 'persona.txt')
         
-        # 如果当前目录没有，尝试项目根目录（适用于本地开发）
         if not os.path.exists(persona_file_path):
             persona_file_path = os.path.join(os.path.dirname(__file__), '..', 'persona.txt')
         
         if os.path.exists(persona_file_path):
             with open(persona_file_path, 'r', encoding='utf-8') as f:
                 persona_content = f.read()
-            st.success(f"✅ 人设档案加载成功: {persona_file_path}")
         else:
-            st.warning("⚠️ 未找到人设档案，使用默认配置")
             persona_content = """你是淘宝AI客服"淘小秘"，专门为淘宝用户提供购物咨询和售后服务。
 
 身份定位：
@@ -115,6 +107,69 @@ def init_langchain():
 
 # 初始化 LangChain
 chain, llm, persona_content = init_langchain()
+
+# 模拟订单数据（用于 Streamlit Cloud）
+def get_orders():
+    return [
+        {
+            "order_id": "TB20260516001",
+            "product_name": "Apple iPhone 15 Pro Max",
+            "price": "¥9999",
+            "status": "shipped",
+            "express": "顺丰速运",
+            "tracking_no": "SF1234567890"
+        },
+        {
+            "order_id": "TB20260519002",
+            "product_name": "Nike Air Jordan 1 篮球鞋",
+            "price": "¥1299",
+            "status": "pending",
+            "express": "中通快递",
+            "tracking_no": "-"
+        },
+        {
+            "order_id": "TB20260518003",
+            "product_name": "戴森V15吸尘器",
+            "price": "¥4999",
+            "status": "delivered",
+            "express": "京东物流",
+            "tracking_no": "JD9876543210"
+        },
+        {
+            "order_id": "TB20260520004",
+            "product_name": "戴森V15吸尘器",
+            "price": "¥4999",
+            "status": "transit",
+            "express": "圆通速递",
+            "tracking_no": "YT5555666677"
+        },
+        {
+            "order_id": "TB20260516005",
+            "product_name": "海尔冰箱500L",
+            "price": "¥5999",
+            "status": "unpaid",
+            "express": "-",
+            "tracking_no": "-"
+        },
+        {
+            "order_id": "TB20260517006",
+            "product_name": "小米电视65英寸",
+            "price": "¥3999",
+            "status": "shipped",
+            "express": "德邦快递",
+            "tracking_no": "DB1122334455"
+        }
+    ]
+
+# 模拟商品数据
+def get_products():
+    return [
+        {"name": "MacBook Pro 14寸", "price": "¥14999", "category": "电脑"},
+        {"name": "华为Mate60 Pro", "price": "¥6999", "category": "手机"},
+        {"name": "iPad Pro 12.9寸", "price": "¥8999", "category": "平板"},
+        {"name": "索尼WH-1000XM5", "price": "¥2999", "category": "耳机"},
+        {"name": "Apple Watch Ultra", "price": "¥6299", "category": "手表"}
+    ]
 
 # 加载样式
 st.markdown("""
@@ -235,26 +290,6 @@ st.markdown("""
         color: white;
     }
     
-    .loading-spinner {
-        display: inline-block;
-        width: 20px;
-        height: 20px;
-        border: 3px solid rgba(255,255,255,.3);
-        border-radius: 50%;
-        border-top-color: #fff;
-        animation: spin 1s ease-in-out infinite;
-    }
-    
-    @keyframes spin {
-        to { transform: rotate(360deg); }
-    }
-    
-    .feedback-section {
-        margin-top: 10px;
-        padding-top: 10px;
-        border-top: 1px solid rgba(255,255,255,0.3);
-    }
-    
     .product-card {
         background: white;
         border: 1px solid #e9ecef;
@@ -294,397 +329,259 @@ st.markdown("""
         color: white;
         border-color: #FF6B35;
     }
-    
-    .stChatInput {
-        border-radius: 20px;
-    }
-    
-    .info-box {
-        background: #e7f3ff;
-        border-left: 4px solid #2196F3;
-        padding: 10px;
-        margin: 10px 0;
-        border-radius: 4px;
-    }
-    
-    .warning-box {
-        background: #fff3cd;
-        border-left: 4px solid #ffc107;
-        padding: 10px;
-        margin: 10px 0;
-        border-radius: 4px;
-    }
 </style>
 """, unsafe_allow_html=True)
 
-# 侧边栏
-with st.sidebar:
-    st.markdown("### 🛒 快捷入口")
-    
-    st.markdown("#### 📋 常用功能")
-    quick_links = [
-        ("🔍 物流查询", "查询订单物流"),
-        ("💳 退款退货", "如何申请退款"),
-        ("📦 订单管理", "修改订单信息"),
-        ("💰 优惠咨询", "优惠券使用方法"),
-        ("📞 联系客服", "联系人工客服")
-    ]
-    
-    for icon_text, tip_text in quick_links:
-        if st.button(f"{icon_text} {tip_text}", use_container_width=True, key=f"sidebar_{tip_text}"):
-            st.session_state.messages.append({
-                "role": "user",
-                "content": tip_text,
-                "timestamp": datetime.now().isoformat()
-            })
-            save_and_rerun()
-    
-    st.markdown("---")
-    st.markdown("#### 💡 常见问题")
-    st.markdown("""
-    - 如何修改收货地址？
-    - 订单什么时候发货？
-    - 支持哪些支付方式？
-    - 如何申请七天无理由退货？
-    - 优惠券无法使用怎么办？
-    """)
-    
-    st.markdown("---")
-    st.markdown("#### 🔧 系统状态")
-    if DEEPSEEK_API_KEY:
-        st.success("✅ AI模型已连接")
-    else:
-        st.error("❌ AI模型未配置")
-    
-    if st.button("🗑️ 清空聊天", use_container_width=True):
-        st.session_state.messages = [{
-            "role": "assistant",
-            "content": "亲，您好～欢迎光临淘宝，我是您的智能客服小秘，请问有什么可以帮到您？",
-            "timestamp": datetime.now().isoformat()
-        }]
-        save_chat_history(st.session_state.messages)
-        st.rerun()
-
-# 加载聊天历史
 def load_chat_history():
-    """加载聊天历史"""
     try:
-        if os.path.exists('chat_history_cloud.json'):
-            with open('chat_history_cloud.json', 'r', encoding='utf-8') as f:
+        if os.path.exists('chat_history.json'):
+            with open('chat_history.json', 'r', encoding='utf-8') as f:
                 return json.load(f)
     except Exception:
         pass
-    return [{
-        "role": "assistant",
-        "content": "亲，您好～欢迎光临淘宝，我是您的智能客服小秘，请问有什么可以帮到您？",
-        "timestamp": datetime.now().isoformat()
-    }]
+    return [{"role": "assistant", "content": "亲，您好～欢迎光临淘宝，我是您的智能客服小秘，请问有什么可以帮到您？", "timestamp": datetime.now().isoformat()}]
 
 def save_chat_history(messages):
-    """保存聊天历史"""
     try:
-        with open('chat_history_cloud.json', 'w', encoding='utf-8') as f:
+        with open('chat_history.json', 'w', encoding='utf-8') as f:
             json.dump(messages, f, ensure_ascii=False, indent=2)
     except Exception as e:
         st.error(f"保存聊天历史失败: {str(e)}")
 
-def save_and_rerun():
-    """保存并重新运行"""
-    save_chat_history(st.session_state.messages)
-    st.rerun()
+def clear_chat_history():
+    try:
+        if os.path.exists('chat_history.json'):
+            os.remove('chat_history.json')
+    except Exception:
+        pass
+    return [{"role": "assistant", "content": "亲，您好～欢迎光临淘宝，我是您的智能客服小秘，请问有什么可以帮到您？", "timestamp": datetime.now().isoformat()}]
 
-# 模拟订单数据
-@st.cache_data(ttl=300)
-def get_orders():
-    """获取订单列表"""
-    return [
-        {
-            "order_id": "TB202401150001",
-            "product": "iPhone 15 Pro Max 256GB 钛金色",
-            "price": "9999.00",
-            "status": "运输中",
-            "express": "顺丰速运",
-            "tracking_no": "SF1234567890"
-        },
-        {
-            "order_id": "TB202401140002",
-            "product": "小米路由器 AX9000",
-            "price": "599.00",
-            "status": "已发货",
-            "express": "中通快递",
-            "tracking_no": "ZTO20240114002"
-        },
-        {
-            "order_id": "TB202401130003",
-            "product": "联想拯救者R9000P游戏本",
-            "price": "8999.00",
-            "status": "待发货",
-            "express": "圆通速递",
-            "tracking_no": "-"
-        },
-        {
-            "order_id": "TB202401120004",
-            "product": "索尼 WH-1000XM5 降噪耳机",
-            "price": "2499.00",
-            "status": "已签收",
-            "express": "韵达快递",
-            "tracking_no": "YD20240112004"
-        },
-        {
-            "order_id": "TB202401110005",
-            "product": "Apple AirPods Pro 2",
-            "price": "1799.00",
-            "status": "待付款",
-            "express": "-",
-            "tracking_no": "-"
-        }
-    ]
+def export_chat_history(messages):
+    export_data = []
+    for msg in messages:
+        role = "客服" if msg["role"] == "assistant" else "用户"
+        timestamp = msg.get("timestamp", "未知时间")
+        export_data.append(f"[{timestamp}] {role}: {msg['content']}")
+    
+    return "\n\n".join(export_data)
 
-# 模拟商品数据
-@st.cache_data(ttl=300)
-def get_products():
-    """获取商品列表"""
-    return [
-        {
-            "name": "iPhone 15 Pro Max",
-            "price": "9999",
-            "sales": 25890,
-            "rating": 4.9
-        },
-        {
-            "name": "MacBook Pro 14英寸",
-            "price": "15999",
-            "sales": 12560,
-            "rating": 4.8
-        },
-        {
-            "name": "AirPods Pro 2",
-            "price": "1799",
-            "sales": 45670,
-            "rating": 4.9
-        },
-        {
-            "name": "iPad Pro 12.9英寸",
-            "price": "9299",
-            "sales": 18920,
-            "rating": 4.8
-        },
-        {
-            "name": "Apple Watch Ultra 2",
-            "price": "5999",
-            "sales": 9870,
-            "rating": 4.7
-        }
-    ]
-
-# 初始化聊天历史
-if 'messages' not in st.session_state:
+# 初始化会话状态
+if "messages" not in st.session_state:
     st.session_state.messages = load_chat_history()
 
-# 主界面
+if "loading" not in st.session_state:
+    st.session_state.loading = False
+
+quick_questions = [
+    "我的订单什么时候发货？",
+    "如何申请退换货？",
+    "商品有质量问题怎么办？",
+    "优惠券怎么使用？",
+    "物流信息在哪里查看？",
+    "支持七天无理由退换吗？",
+    "发票如何开具？",
+    "商品什么时候有优惠活动？",
+    "如何修改收货地址？",
+    "退款需要多长时间？"
+]
+
+# 主页面
 st.markdown("""
 <div class="main-header">
-    <h1>🛒 淘小秘 - 淘宝AI客服</h1>
-    <p>基于 LangChain 和 DeepSeek 的智能客服系统 | 7x24 小时在线为您服务</p>
+    <h1>🛒 淘小秘 - 淘宝智能客服</h1>
+    <p>专业、贴心、高效的购物向导 | 7x24小时在线服务</p>
 </div>
 """, unsafe_allow_html=True)
 
-# 快速提问按钮
-st.markdown("#### 💬 猜你想问")
-cols = st.columns(5)
-quick_questions = [
-    ("📦 物流查询", "查询我的订单物流信息"),
-    ("💳 退款退货", "如何申请退款退货"),
-    ("📝 订单问题", "修改收货地址"),
-    ("🎫 优惠问题", "优惠券怎么使用"),
-    ("❓ 其他问题", "还有什么可以帮你")
-]
+# 侧边栏
+with st.sidebar:
+    st.markdown("### ⚙️ 功能菜单")
+    
+    if st.button("🗑️ 清空聊天", use_container_width=True):
+        st.session_state.messages = clear_chat_history()
+        st.success("聊天历史已清空！")
+        st.rerun()
+    
+    if st.button("📥 导出聊天记录", use_container_width=True):
+        chat_export = export_chat_history(st.session_state.messages)
+        st.download_button(
+            label="💾 下载聊天记录",
+            data=chat_export,
+            file_name=f"淘宝客服聊天记录_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+            mime="text/plain",
+            use_container_width=True
+        )
+    
+    st.markdown("---")
+    
+    st.markdown("### 📞 联系我们")
+    st.markdown("""
+    - **服务时间**: 7x24小时
+    - **人工客服**: 9:00-21:00
+    - **客服热线**: 400-800-1688
+    """)
+    
+    st.markdown("---")
+    
+    st.markdown("### ℹ️ 关于淘小秘")
+    st.markdown("""
+    淘小秘是淘宝官方智能客服助手，
+    为您提供专业、高效的购物咨询服务。
+    
+    **服务范围**:
+    - 售前咨询
+    - 订单查询
+    - 售后服务
+    - 活动说明
+    """)
 
-for i, (icon, text) in enumerate(quick_questions):
-    with cols[i]:
-        if st.button(f"{icon}\n{text}", use_container_width=True, key=f"quick_{i}"):
+# 主内容区
+col1, col2 = st.columns([3, 2])
+
+with col1:
+    st.markdown("### 💡 快速提问")
+    cols = st.columns(2)
+    for i, question in enumerate(quick_questions):
+        if cols[i % 2].button(question, key=f"quick_{i}", use_container_width=True):
             st.session_state.messages.append({
                 "role": "user",
-                "content": text,
+                "content": question,
                 "timestamp": datetime.now().isoformat()
             })
-            save_and_rerun()
-
-# 聊天消息显示
-st.markdown("---")
-chat_container = st.container()
-
-with chat_container:
-    for message in st.session_state.messages:
-        if message["role"] == "user":
-            st.markdown(f"""
-            <div class="chat-message user-message">
-                <strong>👤 您</strong>
-                <div style="margin-top: 8px;">{message["content"]}</div>
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown(f"""
-            <div class="chat-message assistant-message">
-                <strong>🤖 淘小秘</strong>
-                <div style="margin-top: 8px;">{message["content"]}</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-# 输入框
-if prompt := st.chat_input("请输入您的问题...", key="chat_input"):
-    # 添加用户消息
-    st.session_state.messages.append({
-        "role": "user",
-        "content": prompt,
-        "timestamp": datetime.now().isoformat()
-    })
-    save_chat_history(st.session_state.messages)
-    
-    # 生成回复
-    with st.spinner("🤔 淘小秘正在思考中..."):
-        try:
-            if chain:
-                # 使用 LangChain 生成回复
-                response = chain.invoke({
-                    "question": prompt
-                })
-            elif USE_LOCAL_BACKEND:
-                # 使用本地后端
-                import requests
-                resp = requests.post(
-                    f"{BACKEND_URL}/chat",
-                    json={"question": prompt},
-                    timeout=30
-                )
-                if resp.status_code == 200:
-                    response = resp.json()["response"]
-                else:
-                    response = "亲，服务暂时出现问题，请稍后再试～"
-            else:
-                response = "亲，AI服务暂未配置，请在 .env 文件中设置 DEEPSEEK_API_KEY 或设置 USE_LOCAL_BACKEND=true 使用本地后端服务。"
-        except Exception as e:
-            response = f"亲，服务出现了一点小问题，请稍后再试～错误信息：{str(e)}"
-    
-    # 添加助手回复
-    st.session_state.messages.append({
-        "role": "assistant",
-        "content": response,
-        "timestamp": datetime.now().isoformat()
-    })
-    save_chat_history(st.session_state.messages)
-    st.rerun()
-
-# 订单展示
-st.markdown("---")
-orders = get_orders()
-
-st.markdown("### 📦 我的订单")
-if orders:
-    for order in orders:
-        status_class = {
-            "已发货": "status-shipped",
-            "待发货": "status-pending",
-            "已签收": "status-delivered",
-            "运输中": "status-transit",
-            "待付款": "status-unpaid"
-        }.get(order["status"], "status-pending")
-        
-        with st.expander(f"📱 {order['product']}", expanded=False):
-            order_details = f"""
-            <div class="order-card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <span style="font-weight: 500;">订单号: {order['order_id']}</span>
-                    <span class="status-badge {status_class}">{order['status']}</span>
-                </div>
-                <div style="color: #FF4757; font-size: 18px; font-weight: 700; margin-bottom: 10px;">
-                    ¥{order['price']}
-                </div>
-            """
-            if order['express'] != '-':
-                order_details += f"<div style='font-size: 13px; color: #666;'>快递: {order['express']}"
-                if order['tracking_no'] != '-':
-                    order_details += f"<br>运单号: {order['tracking_no']}"
-                order_details += "</div>"
-            order_details += "</div>"
-            st.markdown(order_details, unsafe_allow_html=True)
             
-            if order['tracking_no'] != '-':
-                if st.button(f"🔍 查询物流", key=f"track_{order['order_id']}", use_container_width=True):
-                    query = f"帮我查询订单号{order['order_id']}的物流信息，运单号是{order['tracking_no']}"
+            if chain:
+                try:
+                    with st.spinner("小秘正在思考中..."):
+                        result = chain.invoke({
+                            "question": question
+                        })
+                        
+                        st.session_state.messages.append({
+                            "role": "assistant",
+                            "content": result,
+                            "timestamp": datetime.now().isoformat()
+                        })
+                except Exception as e:
                     st.session_state.messages.append({
-                        "role": "user",
-                        "content": query,
+                        "role": "assistant",
+                        "content": f"非常抱歉，服务暂时出现问题：{str(e)}",
                         "timestamp": datetime.now().isoformat()
                     })
-                    
-                    with st.spinner("🤔 淘小秘正在查询..."):
-                        try:
-                            if chain:
-                                response = chain.invoke({
-                                    "question": query
-                                })
-                            elif USE_LOCAL_BACKEND:
-                                import requests
-                                resp = requests.post(
-                                    f"{BACKEND_URL}/chat",
-                                    json={"question": query},
-                                    timeout=30
-                                )
-                                if resp.status_code == 200:
-                                    response = resp.json()["response"]
-                                else:
-                                    response = "亲，服务暂时出现问题，请稍后再试～"
-                            else:
-                                response = "亲，AI服务暂未配置，无法查询物流信息。"
-                        except Exception as e:
-                            response = f"亲，查询失败：{str(e)}"
+            else:
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": "非常抱歉，AI模型未配置，请联系管理员配置API密钥。",
+                    "timestamp": datetime.now().isoformat()
+                })
+            
+            save_chat_history(st.session_state.messages)
+            st.rerun()
+    
+    st.markdown("---")
+    st.markdown("### 💬 聊天记录")
+    
+    chat_container = st.container()
+    with chat_container:
+        for idx, message in enumerate(st.session_state.messages):
+            if message["role"] == "assistant":
+                st.markdown(f"""
+                <div class="chat-message assistant-message">
+                    <strong style="color: rgba(255,255,255,0.8);">🤖 淘小秘</strong>
+                    <p style="margin-top: 5px;">{message['content']}</p>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                <div class="chat-message user-message">
+                    <strong style="color: #FF6B35;">👤 您</strong>
+                    <p style="margin-top: 5px;">{message['content']}</p>
+                </div>
+                """, unsafe_allow_html=True)
+    
+    # 输入框
+    user_input = st.chat_input("请输入您的问题...")
+    if user_input:
+        st.session_state.messages.append({
+            "role": "user",
+            "content": user_input,
+            "timestamp": datetime.now().isoformat()
+        })
+        
+        if chain:
+            try:
+                with st.spinner("小秘正在思考中..."):
+                    result = chain.invoke({
+                        "question": user_input
+                    })
                     
                     st.session_state.messages.append({
                         "role": "assistant",
-                        "content": response,
+                        "content": result,
                         "timestamp": datetime.now().isoformat()
                     })
-                    
-                    save_chat_history(st.session_state.messages)
-                    st.rerun()
-else:
-    st.info("暂无订单信息")
-
-st.markdown("---")
-
-products = get_products()
-
-st.markdown("### 🛍️ 热门商品")
-if products:
-    cols = st.columns(5)
-    for i, product in enumerate(products):
-        with cols[i]:
-            st.markdown(f"""
-            <div class="product-card">
-                <div style="font-weight: 500; margin-bottom: 5px;">{product['name']}</div>
-                <div style="color: #FF4757; font-size: 18px; font-weight: 700;">
-                    ¥{product['price']}
-                </div>
-                <div style="font-size: 12px; color: #666; margin-top: 5px;">
-                    已售 {product['sales']} | ⭐ {product['rating']}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            if st.button(f"咨询 {product['name']}", key=f"product_{i}", use_container_width=True):
-                query = f"我想咨询一下{product['name']}，请问有什么优惠吗？"
+            except Exception as e:
                 st.session_state.messages.append({
-                    "role": "user",
-                    "content": query,
+                    "role": "assistant",
+                    "content": f"非常抱歉，服务暂时出现问题：{str(e)}",
                     "timestamp": datetime.now().isoformat()
                 })
-                save_and_rerun()
+        else:
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": "非常抱歉，AI模型未配置，请联系管理员配置API密钥。",
+                "timestamp": datetime.now().isoformat()
+            })
+        
+        save_chat_history(st.session_state.messages)
+        st.rerun()
 
-# 页脚
-st.markdown("---")
-st.markdown("""
-<div style="text-align: center; color: #666; padding: 20px;">
-    <p>🤖 淘小秘 - 淘宝AI客服系统 | 基于 LangChain 和 DeepSeek 构建</p>
-    <p style="font-size: 12px;">© 2024 淘宝AI客服. 所有权利保留.</p>
-</div>
-""", unsafe_allow_html=True)
+with col2:
+    # 订单展示
+    st.markdown("### 📦 我的订单")
+    
+    orders = get_orders()
+    order_expanded = st.session_state.get('order_expanded', {})
+    
+    for order in orders:
+        status_map = {
+            'shipped': ('已发货', 'status-shipped'),
+            'pending': ('待发货', 'status-pending'),
+            'delivered': ('已签收', 'status-delivered'),
+            'transit': ('运输中', 'status-transit'),
+            'unpaid': ('待付款', 'status-unpaid')
+        }
+        status_text, status_class = status_map.get(order['status'], ('未知', 'status-pending'))
+        
+        with st.expander(order['product_name']):
+            st.markdown(f"""
+            <div class="order-card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>订单号: {order['order_id']}</span>
+                    <span class="status-badge {status_class}">{status_text}</span>
+                </div>
+                <div style="margin-top: 10px; font-size: 20px; font-weight: 700; color: #dc3545;">
+                    {order['price']}
+                </div>
+                {f"<div style='margin-top: 10px;'>快递: {order['express']}</div>" if order['express'] != '-' else ""}
+                {f"<div>运单号: {order['tracking_no']}</div>" if order['tracking_no'] != '-' else ""}
+            </div>
+            """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # 商品展示
+    st.markdown("### 🔥 热门商品")
+    
+    products = get_products()
+    for product in products:
+        st.markdown(f"""
+        <div class="product-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: 500;">{product['name']}</span>
+                <span style="color: #dc3545; font-weight: 700;">{product['price']}</span>
+            </div>
+            <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                分类: {product['category']}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
