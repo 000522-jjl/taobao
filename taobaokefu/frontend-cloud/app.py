@@ -112,50 +112,50 @@ chain, llm, persona_content = init_langchain()
 def get_orders():
     return [
         {
-            "order_id": "TB20260516001",
-            "product_name": "Apple iPhone 15 Pro Max",
-            "price": "¥9999",
-            "status": "shipped",
+            "order_id": "TB20260520001",
+            "product": "Apple iPhone 15 Pro Max",
+            "price": "9999",
+            "status": "已发货",
             "express": "顺丰速运",
             "tracking_no": "SF1234567890"
         },
         {
             "order_id": "TB20260519002",
-            "product_name": "Nike Air Jordan 1 篮球鞋",
-            "price": "¥1299",
-            "status": "pending",
+            "product": "Nike Air Jordan 1 篮球鞋",
+            "price": "1299",
+            "status": "待发货",
             "express": "中通快递",
             "tracking_no": "-"
         },
         {
             "order_id": "TB20260518003",
-            "product_name": "戴森V15吸尘器",
-            "price": "¥4999",
-            "status": "delivered",
+            "product": "戴森V15吸尘器",
+            "price": "4999",
+            "status": "已签收",
             "express": "京东物流",
             "tracking_no": "JD9876543210"
         },
         {
             "order_id": "TB20260520004",
-            "product_name": "戴森V15吸尘器",
-            "price": "¥4999",
-            "status": "transit",
+            "product": "戴森V15吸尘器",
+            "price": "4999",
+            "status": "运输中",
             "express": "圆通速递",
             "tracking_no": "YT5555666677"
         },
         {
             "order_id": "TB20260516005",
-            "product_name": "海尔冰箱500L",
-            "price": "¥5999",
-            "status": "unpaid",
+            "product": "海尔冰箱500L",
+            "price": "5999",
+            "status": "待付款",
             "express": "-",
             "tracking_no": "-"
         },
         {
             "order_id": "TB20260517006",
-            "product_name": "小米电视65英寸",
-            "price": "¥3999",
-            "status": "shipped",
+            "product": "小米电视65英寸",
+            "price": "3999",
+            "status": "已发货",
             "express": "德邦快递",
             "tracking_no": "DB1122334455"
         }
@@ -164,11 +164,11 @@ def get_orders():
 # 模拟商品数据
 def get_products():
     return [
-        {"name": "MacBook Pro 14寸", "price": "¥14999", "category": "电脑"},
-        {"name": "华为Mate60 Pro", "price": "¥6999", "category": "手机"},
-        {"name": "iPad Pro 12.9寸", "price": "¥8999", "category": "平板"},
-        {"name": "索尼WH-1000XM5", "price": "¥2999", "category": "耳机"},
-        {"name": "Apple Watch Ultra", "price": "¥6299", "category": "手表"}
+        {"name": "MacBook Pro 14寸", "price": "14999", "category": "数码产品", "stock": 50, "sales": 1250},
+        {"name": "华为Mate60 Pro", "price": "6999", "category": "手机", "stock": 100, "sales": 3580},
+        {"name": "iPad Pro 12.9寸", "price": "8999", "category": "平板", "stock": 80, "sales": 980},
+        {"name": "索尼WH-1000XM5", "price": "2999", "category": "耳机", "stock": 200, "sales": 1850},
+        {"name": "Apple Watch Ultra", "price": "6299", "category": "手表", "stock": 60, "sales": 720}
     ]
 
 # 加载样式
@@ -540,48 +540,115 @@ with col2:
     st.markdown("### 📦 我的订单")
     
     orders = get_orders()
-    order_expanded = st.session_state.get('order_expanded', {})
     
     for order in orders:
-        status_map = {
-            'shipped': ('已发货', 'status-shipped'),
-            'pending': ('待发货', 'status-pending'),
-            'delivered': ('已签收', 'status-delivered'),
-            'transit': ('运输中', 'status-transit'),
-            'unpaid': ('待付款', 'status-unpaid')
-        }
-        status_text, status_class = status_map.get(order['status'], ('未知', 'status-pending'))
+        status_class = {
+            "已发货": "status-shipped",
+            "待发货": "status-pending",
+            "已签收": "status-delivered",
+            "运输中": "status-transit",
+            "待付款": "status-unpaid"
+        }.get(order["status"], "status-pending")
         
-        with st.expander(order['product_name']):
-            st.markdown(f"""
+        with st.expander(f"📱 {order['product']}", expanded=False):
+            order_details = f"""
             <div class="order-card">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span>订单号: {order['order_id']}</span>
-                    <span class="status-badge {status_class}">{status_text}</span>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <span style="font-weight: 500;">订单号: {order['order_id']}</span>
+                    <span class="status-badge {status_class}">{order['status']}</span>
                 </div>
-                <div style="margin-top: 10px; font-size: 20px; font-weight: 700; color: #dc3545;">
-                    {order['price']}
+                <div style="color: #FF4757; font-size: 18px; font-weight: 700; margin-bottom: 10px;">
+                    ¥{order['price']}
                 </div>
-                {f"<div style='margin-top: 10px;'>快递: {order['express']}</div>" if order['express'] != '-' else ""}
-                {f"<div>运单号: {order['tracking_no']}</div>" if order['tracking_no'] != '-' else ""}
-            </div>
-            """, unsafe_allow_html=True)
+            """
+            if order['express'] != '-':
+                order_details += f"<div style='font-size: 13px; color: #666;'>快递: {order['express']}"
+                if order['tracking_no'] != '-':
+                    order_details += f"<br>运单号: {order['tracking_no']}"
+                order_details += "</div>"
+            order_details += "</div>"
+            st.markdown(order_details, unsafe_allow_html=True)
+            
+            if order['tracking_no'] != '-':
+                if st.button(f"🔍 查询物流", key=f"track_{order['order_id']}", use_container_width=True):
+                    query = f"帮我查询订单号{order['order_id']}的物流信息，运单号是{order['tracking_no']}"
+                    st.session_state.messages.append({
+                        "role": "user",
+                        "content": query,
+                        "timestamp": datetime.now().isoformat()
+                    })
+                    
+                    try:
+                        with st.spinner("正在查询物流..."):
+                            result = chain.invoke({
+                                "persona": persona_content,
+                                "question": query
+                            })
+                        st.session_state.messages.append({
+                            "role": "assistant",
+                            "content": result,
+                            "timestamp": datetime.now().isoformat()
+                        })
+                    except Exception as e:
+                        st.session_state.messages.append({
+                            "role": "assistant",
+                            "content": f"查询失败: {str(e)}",
+                            "timestamp": datetime.now().isoformat()
+                        })
+                    
+                    save_chat_history(st.session_state.messages)
+                    st.rerun()
     
     st.markdown("---")
     
     # 商品展示
-    st.markdown("### 🔥 热门商品")
+    st.markdown("### 🛍️ 热门商品")
     
     products = get_products()
     for product in products:
-        st.markdown(f"""
-        <div class="product-card">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-weight: 500;">{product['name']}</span>
-                <span style="color: #dc3545; font-weight: 700;">{product['price']}</span>
+        with st.expander(f"**{product['name']}**", expanded=False):
+            st.markdown(f"""
+            <div class="product-card">
+                <div style="color: #FF4757; font-size: 20px; font-weight: 700; margin-bottom: 8px;">
+                    ¥{product['price']}
+                </div>
+                <div style="font-size: 13px; color: #666; margin-bottom: 5px;">
+                    分类: {product['category']}
+                </div>
+                <div style="font-size: 13px; color: #666; margin-bottom: 5px;">
+                    库存: {product['stock']}件
+                </div>
+                <div style="font-size: 13px; color: #FF6B35;">
+                    销量: {product.get('sales', 0)}件
+                </div>
             </div>
-            <div style="font-size: 12px; color: #666; margin-top: 5px;">
-                分类: {product['category']}
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
+            
+            if st.button(f"💬 咨询商品", key=f"ask_{product['name']}", use_container_width=True):
+                query = f"请问{product['name']}有什么优惠活动吗？"
+                st.session_state.messages.append({
+                    "role": "user",
+                    "content": query,
+                    "timestamp": datetime.now().isoformat()
+                })
+                
+                try:
+                    with st.spinner("正在查询..."):
+                        result = chain.invoke({
+                            "persona": persona_content,
+                            "question": query
+                        })
+                    st.session_state.messages.append({
+                        "role": "assistant",
+                        "content": result,
+                        "timestamp": datetime.now().isoformat()
+                    })
+                except Exception as e:
+                    st.session_state.messages.append({
+                        "role": "assistant",
+                        "content": f"咨询失败: {str(e)}",
+                        "timestamp": datetime.now().isoformat()
+                    })
+                
+                save_chat_history(st.session_state.messages)
+                st.rerun()
