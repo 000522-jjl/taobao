@@ -14,9 +14,9 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 检查是否配置了 DeepSeek API
-DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
-DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+# 检查是否配置了 DeepSeek API（支持多种命名方式）
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY") or os.getenv("Deepsseek_API_KEY") or os.getenv("deepseek_api_key")
+DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com") or os.getenv("Deepsseek_BASE_URL")
 
 # 初始化 LangChain 相关组件
 @st.cache_resource
