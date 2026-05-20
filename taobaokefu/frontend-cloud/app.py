@@ -27,7 +27,8 @@ BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8080")
 def init_langchain():
     """初始化 LangChain 组件"""
     from langchain_openai import ChatOpenAI
-    from langchain.prompts import ChatPromptTemplate
+    # 新版 LangChain 路径
+    from langchain_core.prompts import ChatPromptTemplate
     from langchain.schema import StrOutputParser
     from langchain_core.runnables import RunnablePassthrough
     
