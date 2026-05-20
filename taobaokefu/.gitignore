@@ -1,0 +1,37 @@
+
+# 前端云端版本配置
+frontend-cloud/.env
+frontend-cloud/chat_history*.json
+frontend-cloud/__pycache__/
+
+# 日志文件
+*.log
+
+# 聊天历史
+chat_history.json
+
+# Python虚拟环境
+venv/
+.env/
+.python-version
+
+# IDE配置
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# 测试文件
+__pycache__/
+*.pyc
+*.pyo
+.Python
+
+# 构建输出
+dist/
+build/
+*.egg-info/
