@@ -29,7 +29,7 @@ def init_langchain():
     from langchain_openai import ChatOpenAI
     # 新版 LangChain 路径
     from langchain_core.prompts import ChatPromptTemplate
-    from langchain.schema import StrOutputParser
+    from langchain_core.output_parsers import StrOutputParser
     from langchain_core.runnables import RunnablePassthrough
     
     if not DEEPSEEK_API_KEY:
