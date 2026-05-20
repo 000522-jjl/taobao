@@ -35,15 +35,19 @@ def init_langchain():
         return None, None, None
     
     try:
-        # 加载人设档案
-        persona_file_path = os.path.join(os.path.dirname(__file__), '..', 'persona.txt')
+        # 加载人设档案 - 优先使用当前目录的 persona.txt（适用于 Streamlit Cloud）
+        persona_file_path = os.path.join(os.path.dirname(__file__), 'persona.txt')
+        
+        # 如果当前目录没有，尝试项目根目录（适用于本地开发）
         if not os.path.exists(persona_file_path):
-            persona_file_path = os.path.join(os.path.dirname(__file__), 'persona.txt')
+            persona_file_path = os.path.join(os.path.dirname(__file__), '..', 'persona.txt')
         
         if os.path.exists(persona_file_path):
             with open(persona_file_path, 'r', encoding='utf-8') as f:
                 persona_content = f.read()
+            st.success(f"✅ 人设档案加载成功: {persona_file_path}")
         else:
+            st.warning("⚠️ 未找到人设档案，使用默认配置")
             persona_content = """你是淘宝AI客服"淘小秘"，专门为淘宝用户提供购物咨询和售后服务。
 
 身份定位：

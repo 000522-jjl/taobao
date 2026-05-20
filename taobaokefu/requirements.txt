@@ -1,0 +1,22 @@
+# 淘宝AI客服系统 - 项目依赖
+# 建议使用 Python 3.10+ 环境
+
+# LangChain 核心框架（稳定版本）
+langchain==0.1.10
+langchain-openai==0.0.8
+
+# 前端框架
+streamlit==1.32.0
+
+# 后端框架
+fastapi==0.110.0
+uvicorn==0.29.0
+
+# 环境变量配置
+python-dotenv==1.0.0
+
+# HTTP 请求
+requests==2.31.0
+
+# 其他工具
+pydantic==2.6.1
