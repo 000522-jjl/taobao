@@ -19,15 +19,15 @@ DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY") or os.getenv("Deepsseek_API_KEY
 DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com") or os.getenv("Deepsseek_BASE_URL")
 
 # 初始化 LangChain 相关组件
-@st.cache_resource
 def init_langchain():
-    """初始化 LangChain 组件"""
+    """初始化 LangChain 组件（不使用缓存，确保每次都使用最新配置）"""
     from langchain_openai import ChatOpenAI
     from langchain_core.prompts import ChatPromptTemplate
     from langchain_core.output_parsers import StrOutputParser
     from langchain_core.runnables import RunnablePassthrough
     
     if not DEEPSEEK_API_KEY:
+        st.error("⚠️ API密钥未配置，请在Streamlit Cloud的Secrets中设置DEEPSEEK_API_KEY")
         return None, None, None
     
     try:
